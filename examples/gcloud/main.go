@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/lfritz/cmd"
 )
 
@@ -49,5 +51,5 @@ func main() {
 	deployCmd.String("--image", &run.deploy.image, "IMAGE", "name of the image to deploy")
 	deployCmd.Arg("SERVICE", &run.deploy.service)
 
-	top.Run()
+	top.Run(os.Args[1:])
 }
