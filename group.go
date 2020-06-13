@@ -21,7 +21,7 @@ func NewGroup(name string) *Group {
 
 // Command adds a command. The given function will be called if this command is selected.
 func (g *Group) Command(name string, f func()) *Cmd {
-	command := New(name)
+	command := New(name, f)
 	g.commands[name] = command
 	return command
 }
@@ -38,7 +38,7 @@ func (g *Group) Help() string {
 	return ""
 }
 
-// Parse parses the given command-line arguments, sets values for given flags and calls the function
+// Run parses the given command-line arguments, sets values for given flags and calls the function
 // for the selected command. It’s usually called with os.Args[1:].
 func (g *Group) Run(args []string) {
 	// call Flags.parse
@@ -61,8 +61,8 @@ func (g *Group) Run(args []string) {
 		return
 	}
 	if command, ok := g.commands[a]; ok {
-		_ = command
-		// ...
+		command.Run(args)
+		return
 	}
 	g.fail(fmt.Sprintf("'%s' is not a %s command", a, g.name))
 }

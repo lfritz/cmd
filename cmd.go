@@ -12,6 +12,7 @@ type Cmd struct {
 	Flags
 	Summary, Details      string
 	name                  string
+	f                     func()
 	args                  []arg
 	hasOptional, hasMulti bool
 }
@@ -24,7 +25,7 @@ type arg struct {
 }
 
 // New returns a new command with the specified name.
-func New(name string) *Cmd {
+func New(name string, f func()) *Cmd {
 	return nil
 }
 
@@ -88,9 +89,9 @@ func (c *Cmd) Help() string {
 	return ""
 }
 
-// Parse parses the given command-line arguments and sets values for given flags. It’s usually
-// called with os.Args[1:].
-func (c *Cmd) Parse(args []string) {
+// Run parses the given command-line arguments, sets values for given flags and runs the callback
+// function. It’s usually called with os.Args[1:].
+func (c *Cmd) Run(args []string) {
 	err, help := c.parse(args)
 	if err != nil {
 		c.fail(err)
@@ -99,6 +100,7 @@ func (c *Cmd) Parse(args []string) {
 		fmt.Print(c.Help())
 		os.Exit(0)
 	}
+	c.f()
 }
 
 func (c *Cmd) parse(args []string) (err error, help bool) {

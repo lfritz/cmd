@@ -16,7 +16,7 @@ var (
 // This example implements a subset of the “ls” command’s interface. It shows how to use flags and
 // positional arguments.
 func main() {
-	c := cmd.New("ls")
+	c := cmd.New("ls", run)
 	c.Summary = "List information about the FILEs (current directory by default)"
 	c.Details = "The LS_COLORS environment variable can be used instead of --color."
 	c.Flag("-l", &long, "use a long listing format")
@@ -26,6 +26,9 @@ func main() {
 		"do not list implied entries matching shell PATTERN")
 	c.Int("-w --width", &width, "COLS", "set output width to COLS")
 	c.OptionalArgs("FILE", &files)
-	c.Parse(os.Args[1:])
+	c.Run(os.Args[1:])
+}
+
+func run() {
 	// ...
 }
