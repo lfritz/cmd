@@ -106,6 +106,17 @@ func (e *entry) wrapUsage(maxCols int) []string {
 	return lines
 }
 
+func (f *Flags) usage() string {
+	switch len(f.entries) {
+	case 0:
+		return ""
+	case 1:
+		return "[OPTION]"
+	default:
+		return "[OPTION]..."
+	}
+}
+
 func (f *Flags) printHelp(w io.Writer, columns int) {
 	// set a maximum for left column size
 	maxLeftCols := (columns - 4) / 2

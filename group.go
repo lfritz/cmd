@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // A Group represents a group of commands. Groups can be nested arbitrarily.
@@ -16,7 +17,12 @@ type Group struct {
 
 // NewGroup returns a new group of commands with the specified name.
 func NewGroup(name string) *Group {
-	return nil
+	return &Group{
+		Flags:    newFlags(),
+		name:     name,
+		groups:   make(map[string]*Group),
+		commands: make(map[string]*Cmd),
+	}
 }
 
 // Command adds a command. The given function will be called if this command is selected.
@@ -33,9 +39,36 @@ func (g *Group) Group(name string) *Group {
 	return group
 }
 
-// Help returns a help message.
-func (g *Group) Help() string {
-	return ""
+// PrintHelp prints a help message to stdout.
+func (g *Group) PrintHelp() {
+	w := os.Stdout
+	fmt.Fprintln(w, g.usageLine())
+	fmt.Fprintln(w)
+	if g.Summary != "" {
+		fmt.Fprintln(w, g.Summary)
+		fmt.Fprintln(w)
+	}
+	g.Flags.printHelp(w, 80)
+	if g.Details != "" {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, g.Details)
+	}
+}
+
+func (g *Group) usageLine() string {
+	line := []string{"Usage:", g.name}
+	if s := g.Flags.usage(); s != "" {
+		line = append(line, s)
+	}
+	groupOrCommand := []string{}
+	if len(g.groups) > 0 {
+		groupOrCommand = append(groupOrCommand, "GROUP")
+	}
+	if len(g.commands) > 0 {
+		groupOrCommand = append(groupOrCommand, "COMMAND")
+	}
+	line = append(line, strings.Join(groupOrCommand, " | "))
+	return strings.Join(line, " ")
 }
 
 // Run parses the given command-line arguments, sets values for given flags and calls the function
@@ -77,6 +110,6 @@ func (g *Group) fail(msg string) {
 }
 
 func (g *Group) help() {
-	fmt.Print(g.Help())
+	g.PrintHelp()
 	os.Exit(0)
 }

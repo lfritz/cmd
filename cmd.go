@@ -4,8 +4,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
+	"strings"
 )
 
 // A Cmd represents a command with command-line flags and positional arguments.
@@ -92,7 +92,8 @@ func (c *Cmd) OptionalArgs(name string, p *[]string) {
 // PrintHelp prints a help message to stdout.
 func (c *Cmd) PrintHelp() {
 	w := os.Stdout
-	c.printUsage(w)
+	fmt.Fprintln(w, c.usageLine())
+	fmt.Fprintln(w)
 	if c.Summary != "" {
 		fmt.Fprintln(w, c.Summary)
 		fmt.Fprintln(w)
@@ -104,27 +105,24 @@ func (c *Cmd) PrintHelp() {
 	}
 }
 
-func (c *Cmd) printUsage(w io.Writer) {
-	fmt.Fprintf(w, "Usage: %s", c.name)
-	switch len(c.Flags.options) {
-	case 0:
-	case 1:
-		fmt.Fprint(w, " [OPTION]")
-	default:
-		fmt.Fprint(w, " [OPTION]...")
+func (c *Cmd) usageLine() string {
+	line := []string{"Usage:", c.name}
+	if s := c.Flags.usage(); s != "" {
+		line = append(line, s)
 	}
 	for _, arg := range c.args {
+		var s string
 		if arg.optional {
-			fmt.Fprintf(w, " [%s]", arg.name)
+			s = fmt.Sprintf("[%s]", arg.name)
 		} else {
-			fmt.Fprintf(w, " %s", arg.name)
+			s = fmt.Sprintf("%s", arg.name)
 		}
 		if arg.multi != nil {
-			fmt.Fprint(w, "...")
+			s += "..."
 		}
+		line = append(line, s)
 	}
-	fmt.Fprintln(w)
-	fmt.Fprintln(w)
+	return strings.Join(line, " ")
 }
 
 // Run parses the given command-line arguments, sets values for given flags and runs the callback
