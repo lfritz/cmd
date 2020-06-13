@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+var helpFlags = map[string]bool{
+	"-h":     true,
+	"-help":  true,
+	"--help": true,
+}
+
 // Flags is used to define flags with and without arguments. It’s meant to be used through Cmd and
 // Group.
 type Flags struct {
@@ -85,6 +91,10 @@ func (f *Flags) parse(args []string) (err error, help bool, following []string) 
 				return err, false, nil
 			}
 			continue
+		}
+
+		if helpFlags[a] {
+			return nil, true, nil
 		}
 
 		ptr, ok := f.flags[a]

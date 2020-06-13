@@ -56,6 +56,9 @@ func (g *Group) Run(args []string) {
 	}
 	a := args[0]
 	args = args[1:]
+	if a == "help" {
+		g.help()
+	}
 	if group, ok := g.groups[a]; ok {
 		group.Run(args)
 		return

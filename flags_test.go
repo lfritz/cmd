@@ -35,6 +35,10 @@ func TestFlagsParse(t *testing.T) {
 			following: []string{"foo"},
 		},
 		{
+			args: "--help",
+			help: true,
+		},
+		{
 			args: "--quiet --name",
 			err:  true,
 		},
