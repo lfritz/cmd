@@ -106,11 +106,14 @@ func (e *entry) wrapUsage(maxCols int) []string {
 	return lines
 }
 
-func (f *Flags) printHelp(w io.Writer) {
-	totalCols := 80
+func (f *Flags) printHelp(w io.Writer, columns int) {
+	// set a maximum for left column size
+	maxLeftCols := (columns - 4) / 2
+	if maxLeftCols > 25 {
+		maxLeftCols = 25
+	}
 
 	// get text for left column
-	maxLeftCols := 20
 	flagDefinitions := []flagDefinition{}
 	for _, entry := range f.entries {
 		flagDefinitions = append(flagDefinitions, entry.flagDefinition(maxLeftCols))
@@ -127,9 +130,13 @@ func (f *Flags) printHelp(w io.Writer) {
 			leftCols = cols
 		}
 	}
-	rightCols := totalCols - 4 - leftCols
+	rightCols := columns - 4 - leftCols
+	if rightCols > 50 {
+		rightCols = 50
+	}
 
 	// print
+	fmt.Fprintln(w, "Options:")
 	for i, entry := range f.entries {
 		flagDef := flagDefinitions[i]
 		for _, line := range flagDef.separate {

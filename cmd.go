@@ -4,6 +4,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -88,10 +89,42 @@ func (c *Cmd) OptionalArgs(name string, p *[]string) {
 	c.hasMulti = true
 }
 
+// PrintHelp prints a help message to stdout.
 func (c *Cmd) PrintHelp() {
-	// ...
-	c.Flags.printHelp(os.Stdout)
-	// ...
+	w := os.Stdout
+	c.printUsage(w)
+	if c.Summary != "" {
+		fmt.Fprintln(w, c.Summary)
+		fmt.Fprintln(w)
+	}
+	c.Flags.printHelp(w, 80)
+	if c.Details != "" {
+		fmt.Fprintln(w)
+		fmt.Fprintln(w, c.Details)
+	}
+}
+
+func (c *Cmd) printUsage(w io.Writer) {
+	fmt.Fprintf(w, "Usage: %s", c.name)
+	switch len(c.Flags.options) {
+	case 0:
+	case 1:
+		fmt.Fprint(w, " [OPTION]")
+	default:
+		fmt.Fprint(w, " [OPTION]...")
+	}
+	for _, arg := range c.args {
+		if arg.optional {
+			fmt.Fprintf(w, " [%s]", arg.name)
+		} else {
+			fmt.Fprintf(w, " %s", arg.name)
+		}
+		if arg.multi != nil {
+			fmt.Fprint(w, "...")
+		}
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w)
 }
 
 // Run parses the given command-line arguments, sets values for given flags and runs the callback
