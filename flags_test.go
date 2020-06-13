@@ -13,7 +13,7 @@ func TestFlagsParse(t *testing.T) {
 	)
 	flags := Flags{
 		flags:   make(map[string]*bool),
-		options: make(map[string]option),
+		options: make(map[string]*option),
 	}
 	flags.Flag("--quiet", &quiet, "")
 	flags.String("--name", &name, "NAME", "")
@@ -66,6 +66,30 @@ func TestFlagsParse(t *testing.T) {
 		}
 		if !reflect.DeepEqual(following, c.following) {
 			t.Errorf("Flags.parse(%v) returned %v, want %v", args, following, c.following)
+		}
+	}
+}
+
+func TestSplitSpec(t *testing.T) {
+	spec := "-c --color"
+	want := []string{"-c", "--color"}
+	got, err := splitSpec(spec)
+	if err != nil {
+		t.Fatalf("splitSpec(%v) returned error: %v", spec, err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("splitSpec(%v) == %v, want %v", spec, got, want)
+	}
+
+	for _, spec := range []string{
+		"",
+		"c",
+		"-color shape",
+		"---shape",
+	} {
+		_, err := splitSpec(spec)
+		if err == nil {
+			t.Errorf("splitSpec(%v) didn't return error", spec)
 		}
 	}
 }

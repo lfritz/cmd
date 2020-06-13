@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -10,7 +11,7 @@ import (
 // Group.
 type Flags struct {
 	flags   map[string]*bool
-	options map[string]option
+	options map[string]*option
 }
 
 type option struct {
@@ -19,30 +20,45 @@ type option struct {
 
 // Flag defines a flag without a value.
 func (f *Flags) Flag(spec string, p *bool, usage string) {
-	f.flags[spec] = p
+	names, err := splitSpec(spec)
+	if err != nil {
+		panic(err.Error())
+	}
+	for _, name := range names {
+		f.flags[name] = p
+	}
 }
 
 // String defines a flag with a string value.
 func (f *Flags) String(spec string, p *string, name, usage string) {
-	f.options[spec] = option{
-		set: func(name, value string) error {
-			*p = value
-			return nil
-		},
-	}
+	f.addOption(spec, func(name, value string) error {
+		*p = value
+		return nil
+	})
 }
 
 // Int defines a flag with an integer value.
 func (f *Flags) Int(spec string, p *int, name, usage string) {
-	f.options[spec] = option{
-		set: func(name, value string) error {
-			i, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("invalid %s argument '%s'", name, value)
-			}
-			*p = i
-			return nil
-		},
+	f.addOption(spec, func(name, value string) error {
+		i, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("invalid %s argument '%s'", name, value)
+		}
+		*p = i
+		return nil
+	})
+}
+
+func (f *Flags) addOption(spec string, set func(name, value string) error) {
+	names, err := splitSpec(spec)
+	if err != nil {
+		panic(err.Error())
+	}
+	op := &option{
+		set: set,
+	}
+	for _, name := range names {
+		f.options[name] = op
 	}
 }
 
@@ -109,4 +125,22 @@ func splitFlag(s string) (string, string) {
 		return slice[0], ""
 	}
 	return slice[0], slice[1]
+}
+
+var splitRe = regexp.MustCompile(`^--?[^-]`)
+
+func splitSpec(spec string) ([]string, error) {
+	fail := func() ([]string, error) {
+		return nil, fmt.Errorf("invalid spec: %s", spec)
+	}
+	parts := strings.Split(spec, " ")
+	if len(parts) == 0 {
+		return fail()
+	}
+	for _, p := range parts {
+		if !splitRe.MatchString(p) {
+			return fail()
+		}
+	}
+	return parts, nil
 }
