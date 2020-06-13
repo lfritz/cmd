@@ -26,7 +26,11 @@ type arg struct {
 
 // New returns a new command with the specified name.
 func New(name string, f func()) *Cmd {
-	return nil
+	return &Cmd{
+		Flags: newFlags(),
+		name:  name,
+		f:     f,
+	}
 }
 
 // Arg defines a positional argument.
@@ -84,9 +88,10 @@ func (c *Cmd) OptionalArgs(name string, p *[]string) {
 	c.hasMulti = true
 }
 
-// Help returns a help message.
-func (c *Cmd) Help() string {
-	return ""
+func (c *Cmd) PrintHelp() {
+	// ...
+	c.Flags.printHelp(os.Stdout)
+	// ...
 }
 
 // Run parses the given command-line arguments, sets values for given flags and runs the callback
@@ -97,7 +102,7 @@ func (c *Cmd) Run(args []string) {
 		c.fail(err)
 	}
 	if help {
-		fmt.Print(c.Help())
+		c.PrintHelp()
 		os.Exit(0)
 	}
 	c.f()

@@ -7,10 +7,11 @@ import (
 )
 
 var (
-	long, color, all bool
-	hidePattern      string
-	width            int
-	files            []string
+	long, color, all, dereferenceSymlink bool
+
+	hidePattern string
+	width       int
+	files       []string
 )
 
 // This example implements a subset of the “ls” command’s interface. It shows how to use flags and
@@ -22,6 +23,8 @@ func main() {
 	c.Flag("-l", &long, "use a long listing format")
 	c.Flag("--color", &color, "colorize the output")
 	c.Flag("-a --all", &all, "do not ignore entries starting with .")
+	c.Flag("--dereference-command-line-symlink-to-dir", &dereferenceSymlink,
+		"follow each command line symbolic link that points to a directory")
 	c.String("--hide", &hidePattern, "PATTERN",
 		"do not list implied entries matching shell PATTERN")
 	c.Int("-w --width", &width, "COLS", "set output width to COLS")
