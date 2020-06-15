@@ -22,14 +22,14 @@ type Flags struct {
 	options map[string]*option
 
 	// used for help message
-	entries []*entry
+	defs []*definition
 }
 
 func newFlags() Flags {
 	return Flags{
 		flags:   make(map[string]*bool),
 		options: make(map[string]*option),
-		entries: []*entry{},
+		defs:    []*definition{},
 	}
 }
 
@@ -48,66 +48,8 @@ type flagDefinition struct {
 	inline   string
 }
 
-func (e *entry) flagDefinition(maxCols int) flagDefinition {
-	// add e.value where needed
-	withValue := []string{}
-	for _, name := range e.names {
-		if e.value != "" {
-			name = fmt.Sprintf("%s %s", name, e.value)
-		}
-		withValue = append(withValue, name)
-	}
-
-	// join lines where it makes sense
-	joined := strings.Join(withValue, ", ")
-	last := len(withValue) - 1
-	if len([]rune(withValue[last])) > maxCols {
-		return flagDefinition{
-			separate: withValue,
-		}
-	}
-	if len([]rune(joined)) > maxCols {
-		return flagDefinition{
-			separate: withValue[:last],
-			inline:   withValue[last],
-		}
-	}
-	return flagDefinition{
-		inline: joined,
-	}
-}
-
-func (e *entry) wrapUsage(maxCols int) []string {
-	// split usage message into words and convert to []rune
-	words := strings.Split(e.usage, " ")
-	runeWords := make([][]rune, len(words))
-	for i, word := range words {
-		runeWords[i] = []rune(word)
-	}
-
-	// join words into lines of up to maxCols characters
-	lines := []string{}
-	current := []rune{}
-	firstWord := true
-	for _, word := range runeWords {
-		if len(current)+1+len(word) > maxCols {
-			lines = append(lines, string(current))
-			current = word
-			continue
-		}
-		if !firstWord {
-			current = append(current, ' ')
-		}
-		current = append(current, word...)
-		firstWord = false
-	}
-	lines = append(lines, string(current))
-
-	return lines
-}
-
 func (f *Flags) usage() string {
-	switch len(f.entries) {
+	switch len(f.defs) {
 	case 0:
 		return ""
 	case 1:
@@ -117,47 +59,11 @@ func (f *Flags) usage() string {
 	}
 }
 
-func (f *Flags) printHelp(w io.Writer, columns int) {
-	// set a maximum for left column size
-	maxLeftCols := (columns - 4) / 2
-	if maxLeftCols > 25 {
-		maxLeftCols = 25
-	}
-
-	// get text for left column
-	flagDefinitions := []flagDefinition{}
-	for _, entry := range f.entries {
-		flagDefinitions = append(flagDefinitions, entry.flagDefinition(maxLeftCols))
-	}
-
-	// find out size of left and right column
-	leftCols := 0
-	for _, d := range flagDefinitions {
-		if d.inline == "" {
-			continue
-		}
-		cols := len([]rune(d.inline))
-		if cols > leftCols {
-			leftCols = cols
-		}
-	}
-	rightCols := columns - 4 - leftCols
-	if rightCols > 80 {
-		rightCols = 80
-	}
-
-	// print
-	fmt.Fprintln(w, "Options:")
-	for i, entry := range f.entries {
-		flagDef := flagDefinitions[i]
-		for _, line := range flagDef.separate {
-			fmt.Fprintf(w, "  %s\n", line)
-		}
-		usageLines := entry.wrapUsage(rightCols)
-		fmt.Fprintf(w, "  %-*s  %s\n", leftCols, flagDef.inline, usageLines[0])
-		for _, line := range usageLines[1:] {
-			fmt.Fprintf(w, "%*s%s\n", 2+leftCols+2, "", line)
-		}
+func (f *Flags) printDefinitions(w io.Writer, columns int) {
+	if len(f.defs) > 0 {
+		fmt.Fprintln(w, "Options:")
+		printDefinitions(w, f.defs, columns)
+		fmt.Fprintln(w)
 	}
 }
 
@@ -171,9 +77,9 @@ func (f *Flags) Flag(spec string, p *bool, usage string) {
 		f.flags[name] = p
 	}
 
-	f.entries = append(f.entries, &entry{
-		names: names,
-		usage: usage,
+	f.defs = append(f.defs, &definition{
+		terms: names,
+		text:  usage,
 	})
 }
 
@@ -209,10 +115,15 @@ func (f *Flags) addOption(spec, name, usage string, set func(name, value string)
 		f.options[name] = op
 	}
 
-	f.entries = append(f.entries, &entry{
-		names: names,
-		value: name,
-		usage: usage,
+	// add e.value where needed
+	terms := []string{}
+	for _, n := range names {
+		terms = append(terms, fmt.Sprintf("%s %s", n, name))
+	}
+
+	f.defs = append(f.defs, &definition{
+		terms: terms,
+		text:  usage,
 	})
 }
 

@@ -32,7 +32,7 @@ func main() {
 	})
 	versionCmd.Summary = "print version information"
 
-	infoCmd := top.Command("gcloud info", func() {
+	infoCmd := top.Command("info", func() {
 		// ...
 	})
 	infoCmd.Summary = "display information about the environment"
@@ -40,11 +40,11 @@ func main() {
 	infoCmd.Flag("--run-diagnostics", &info.runDiagnostics, "run diagnostics")
 	infoCmd.Flag("--show-log", &info.showLog, "print the contents of the last log file")
 
-	runGroup := top.Group("gcloud run")
+	runGroup := top.Group("run")
 	runGroup.Summary = "Manage your Cloud Run applications"
 	runGroup.String("--platform", &run.platform, "platform", "target platform for running commands")
 
-	deployCmd := runGroup.Command("gcloud run deploy", func() {
+	deployCmd := runGroup.Command("run deploy", func() {
 		// ...
 	})
 	deployCmd.Summary = "Deploy a container to Cloud Run"

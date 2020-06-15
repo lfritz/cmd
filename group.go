@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -27,24 +28,65 @@ func NewGroup(name string) *Group {
 
 // Command adds a command. The given function will be called if this command is selected.
 func (g *Group) Command(name string, f func()) *Cmd {
-	command := New(name, f)
+	command := New(fmt.Sprintf("%s %s", g.name, name), f)
 	g.commands[name] = command
 	return command
 }
 
 // Group adds a sub-group.
 func (g *Group) Group(name string) *Group {
-	group := NewGroup(name)
+	group := NewGroup(fmt.Sprintf("%s %s", g.name, name))
 	g.groups[name] = group
 	return group
 }
 
 // PrintHelp prints a help message to stdout.
 func (g *Group) PrintHelp() {
-	printHelp(g.usageLine(), g.Summary, g.Details, &g.Flags)
+	printHelp(g)
 }
 
-func (g *Group) usageLine() string {
+func (g *Group) summary() string {
+	return g.Summary
+}
+
+func (g *Group) details() string {
+	return g.Details
+}
+
+func (g *Group) printDefinitions(w io.Writer, columns int) {
+	// options
+	g.Flags.printDefinitions(w, columns)
+
+	// groups
+	defs := []*definition{}
+	for name, g := range g.groups {
+		defs = append(defs, &definition{
+			terms: []string{name},
+			text:  g.Summary,
+		})
+	}
+	if len(defs) > 0 {
+		fmt.Fprintln(w, "Groups:")
+		printDefinitions(w, defs, columns)
+		fmt.Fprintln(w)
+	}
+
+	// commands
+	defs = []*definition{}
+	for name, c := range g.commands {
+		defs = append(defs, &definition{
+			terms: []string{name},
+			text:  c.Summary,
+		})
+	}
+	if len(defs) > 0 {
+		fmt.Fprintln(w, "Commands:")
+		printDefinitions(w, defs, columns)
+		fmt.Fprintln(w)
+	}
+}
+
+func (g *Group) usage() string {
 	line := []string{"Usage:", g.name}
 	if s := g.Flags.usage(); s != "" {
 		line = append(line, s)

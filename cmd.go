@@ -91,10 +91,18 @@ func (c *Cmd) OptionalArgs(name string, p *[]string) {
 
 // PrintHelp prints a help message to stdout.
 func (c *Cmd) PrintHelp() {
-	printHelp(c.usageLine(), c.Summary, c.Details, &c.Flags)
+	printHelp(c)
 }
 
-func (c *Cmd) usageLine() string {
+func (c *Cmd) summary() string {
+	return c.Summary
+}
+
+func (c *Cmd) details() string {
+	return c.Details
+}
+
+func (c *Cmd) usage() string {
 	line := []string{"Usage:", c.name}
 	if s := c.Flags.usage(); s != "" {
 		line = append(line, s)
