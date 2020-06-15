@@ -169,8 +169,8 @@ func (c *Cmd) parse(args []string) (err error, help bool) {
 }
 
 func (c *Cmd) fail(err error) {
-	// TODO use stderr
-	fmt.Printf("%s: %s\n", c.name, err)
-	fmt.Printf("Try '%s --help' for more information.", c.name)
+	w := os.Stderr
+	fmt.Fprintf(w, "%s: %s\n", c.name, err)
+	fmt.Fprintf(w, "Try '%s --help' for more information.", c.name)
 	os.Exit(2)
 }

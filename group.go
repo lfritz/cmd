@@ -135,9 +135,9 @@ func (g *Group) Run(args []string) {
 }
 
 func (g *Group) fail(msg string) {
-	// TODO use stderr
-	fmt.Printf("%s: %s\n", g.name, msg)
-	fmt.Printf("Try '%s help' for more information.", g.name)
+	w := os.Stderr
+	fmt.Fprintf(w, "%s: %s\n", g.name, msg)
+	fmt.Fprintf(w, "Try '%s help' for more information.", g.name)
 	os.Exit(2)
 }
 
