@@ -142,8 +142,8 @@ func (f *Flags) printHelp(w io.Writer, columns int) {
 		}
 	}
 	rightCols := columns - 4 - leftCols
-	if rightCols > 50 {
-		rightCols = 50
+	if rightCols > 80 {
+		rightCols = 80
 	}
 
 	// print

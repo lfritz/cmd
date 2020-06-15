@@ -91,18 +91,7 @@ func (c *Cmd) OptionalArgs(name string, p *[]string) {
 
 // PrintHelp prints a help message to stdout.
 func (c *Cmd) PrintHelp() {
-	w := os.Stdout
-	fmt.Fprintln(w, c.usageLine())
-	fmt.Fprintln(w)
-	if c.Summary != "" {
-		fmt.Fprintln(w, c.Summary)
-		fmt.Fprintln(w)
-	}
-	c.Flags.printHelp(w, 80)
-	if c.Details != "" {
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, c.Details)
-	}
+	printHelp(c.usageLine(), c.Summary, c.Details, &c.Flags)
 }
 
 func (c *Cmd) usageLine() string {

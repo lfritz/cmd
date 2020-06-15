@@ -41,18 +41,7 @@ func (g *Group) Group(name string) *Group {
 
 // PrintHelp prints a help message to stdout.
 func (g *Group) PrintHelp() {
-	w := os.Stdout
-	fmt.Fprintln(w, g.usageLine())
-	fmt.Fprintln(w)
-	if g.Summary != "" {
-		fmt.Fprintln(w, g.Summary)
-		fmt.Fprintln(w)
-	}
-	g.Flags.printHelp(w, 80)
-	if g.Details != "" {
-		fmt.Fprintln(w)
-		fmt.Fprintln(w, g.Details)
-	}
+	printHelp(g.usageLine(), g.Summary, g.Details, &g.Flags)
 }
 
 func (g *Group) usageLine() string {
