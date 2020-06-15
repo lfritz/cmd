@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/lfritz/cmd"
@@ -33,5 +34,11 @@ func main() {
 }
 
 func run() {
-	// TODO print values
+	fmt.Println("long:              ", long)
+	fmt.Println("color:             ", color)
+	fmt.Println("all:               ", all)
+	fmt.Println("dereferenceSymlink:", dereferenceSymlink)
+	fmt.Println("hidePattern:       ", hidePattern)
+	fmt.Println("width:             ", width)
+	fmt.Println("files:             ", files)
 }

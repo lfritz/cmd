@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/lfritz/cmd"
@@ -28,12 +29,15 @@ func main() {
 	top.Flag("-q --quiet", &quiet, "disable all interactive prompts")
 
 	versionCmd := top.Command("version", func() {
-		// TODO print values
+		fmt.Println("quiet: ", quiet)
 	})
 	versionCmd.Summary = "print version information"
 
 	infoCmd := top.Command("info", func() {
-		// TODO print values
+		fmt.Println("quiet:          ", quiet)
+		fmt.Println("anonymize:      ", info.anonymize)
+		fmt.Println("runDiagnostics: ", info.runDiagnostics)
+		fmt.Println("showLog:        ", info.showLog)
 	})
 	infoCmd.Summary = "display information about the environment"
 	infoCmd.Flag("--anonymize", &info.anonymize, "minimize any personal information")
@@ -44,8 +48,11 @@ func main() {
 	runGroup.Summary = "Manage your Cloud Run applications"
 	runGroup.String("--platform", &run.platform, "platform", "target platform for running commands")
 
-	deployCmd := runGroup.Command("run deploy", func() {
-		// TODO print values
+	deployCmd := runGroup.Command("deploy", func() {
+		fmt.Println("quiet:    ", quiet)
+		fmt.Println("platform: ", run.platform)
+		fmt.Println("image:    ", run.deploy.image)
+		fmt.Println("service:  ", run.deploy.service)
 	})
 	deployCmd.Summary = "Deploy a container to Cloud Run"
 	deployCmd.String("--image", &run.deploy.image, "IMAGE", "name of the image to deploy")
