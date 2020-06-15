@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -66,10 +67,11 @@ func terminalColumns() int {
 	return 80
 }
 
+var whitespaceRe = regexp.MustCompile(`\W+`)
+
 func wrapText(text string, columns int) []string {
 	// split text into words and convert to []rune
-	// TODO split by whitespace, not just space character
-	words := strings.Split(text, " ")
+	words := whitespaceRe.Split(text, -1)
 	runeWords := make([][]rune, len(words))
 	for i, word := range words {
 		runeWords[i] = []rune(word)
