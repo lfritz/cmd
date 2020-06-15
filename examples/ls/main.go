@@ -33,5 +33,5 @@ func main() {
 }
 
 func run() {
-	// ...
+	// TODO print values
 }

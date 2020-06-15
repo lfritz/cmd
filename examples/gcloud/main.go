@@ -28,12 +28,12 @@ func main() {
 	top.Flag("-q --quiet", &quiet, "disable all interactive prompts")
 
 	versionCmd := top.Command("version", func() {
-		// ...
+		// TODO print values
 	})
 	versionCmd.Summary = "print version information"
 
 	infoCmd := top.Command("info", func() {
-		// ...
+		// TODO print values
 	})
 	infoCmd.Summary = "display information about the environment"
 	infoCmd.Flag("--anonymize", &info.anonymize, "minimize any personal information")
@@ -45,7 +45,7 @@ func main() {
 	runGroup.String("--platform", &run.platform, "platform", "target platform for running commands")
 
 	deployCmd := runGroup.Command("run deploy", func() {
-		// ...
+		// TODO print values
 	})
 	deployCmd.Summary = "Deploy a container to Cloud Run"
 	deployCmd.String("--image", &run.deploy.image, "IMAGE", "name of the image to deploy")

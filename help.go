@@ -18,6 +18,7 @@ type helpPrintable interface {
 }
 
 func printHelp(h helpPrintable) {
+	// TODO allow multiple paragraphs in summary and details
 	columns := terminalColumns()
 	w := os.Stdout
 	fmt.Fprintln(w, h.usage())
@@ -67,6 +68,7 @@ func terminalColumns() int {
 
 func wrapText(text string, columns int) []string {
 	// split text into words and convert to []rune
+	// TODO split by whitespace, not just space character
 	words := strings.Split(text, " ")
 	runeWords := make([][]rune, len(words))
 	for i, word := range words {
