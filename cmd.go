@@ -11,11 +11,11 @@ import (
 // A Cmd represents a command with command-line flags and positional arguments.
 type Cmd struct {
 	Flags
-	Summary, Details      string
-	name                  string
-	f                     func()
-	args                  []arg
-	hasOptional, hasMulti bool
+	Summary, Details string
+	name             string
+	f                func()
+	args             []arg
+	argsState        int
 }
 
 type arg struct {
@@ -24,6 +24,17 @@ type arg struct {
 	single   *string
 	multi    *[]string
 }
+
+const (
+	argsInitial = iota
+	argsRegular
+	argsRegularOptional
+	argsRegularMulti
+	argsMulti
+	argsMultiRegular
+	argsOptinal
+	argsOptinalRegular
+)
 
 // New returns a new command with the specified name.
 func New(name string, f func()) *Cmd {
@@ -34,13 +45,21 @@ func New(name string, f func()) *Cmd {
 	}
 }
 
+func ambiguousArgs() {
+	panic("Cmd: ambiguous sequence of positional arguments")
+}
+
 // Arg defines a positional argument.
 func (c *Cmd) Arg(name string, p *string) {
-	if c.hasOptional {
-		panic("Cmd: cannot add non-optional after optional argument")
-	}
-	if c.hasMulti {
-		panic("Cmd: cannot add single argument after repeated argument")
+	switch c.argsState {
+	case argsInitial, argsRegular:
+		c.argsState = argsRegular
+	case argsMulti:
+		c.argsState = argsMultiRegular
+	case argsOptinal:
+		c.argsState = argsOptinalRegular
+	default:
+		ambiguousArgs()
 	}
 	c.args = append(c.args, arg{
 		name:   name,
@@ -50,43 +69,45 @@ func (c *Cmd) Arg(name string, p *string) {
 
 // OptionalArg defines an optional positional argument.
 func (c *Cmd) OptionalArg(name string, p *string) {
-	if c.hasMulti {
-		panic("Cmd: cannot add single argument after repeated argument")
+	switch c.argsState {
+	case argsInitial, argsOptinal:
+		c.argsState = argsOptinal
+	case argsRegular:
+		c.argsState = argsRegularOptional
+	default:
+		ambiguousArgs()
 	}
 	c.args = append(c.args, arg{
 		name:     name,
 		optional: true,
 		single:   p,
 	})
-	c.hasOptional = true
 }
 
 // Args defines an argument that can be present one or more times.
 func (c *Cmd) Args(name string, p *[]string) {
-	if c.hasOptional {
-		panic("Cmd: cannot add non-optional after optional argument")
-	}
-	if c.hasMulti {
-		panic("Cmd: cannot have multiple repeated arguments")
-	}
-	c.args = append(c.args, arg{
-		name:  name,
-		multi: p,
-	})
-	c.hasMulti = true
+	c.addArgs(name, p, false)
 }
 
 // OptionalArgs defines an argument that can be present zero or more times.
 func (c *Cmd) OptionalArgs(name string, p *[]string) {
-	if c.hasMulti {
-		panic("Cmd: cannot have multiple repeated arguments")
+	c.addArgs(name, p, true)
+}
+
+func (c *Cmd) addArgs(name string, p *[]string, optional bool) {
+	switch c.argsState {
+	case argsInitial:
+		c.argsState = argsMulti
+	case argsRegular:
+		c.argsState = argsRegularMulti
+	default:
+		ambiguousArgs()
 	}
 	c.args = append(c.args, arg{
 		name:     name,
-		optional: true,
+		optional: optional,
 		multi:    p,
 	})
-	c.hasMulti = true
 }
 
 // PrintHelp prints a help message to stdout.
@@ -137,26 +158,53 @@ func (c *Cmd) Run(args []string) {
 }
 
 func (c *Cmd) parse(args []string) (err error, help bool) {
+	// parse flags
 	err, help, args = c.Flags.parse(args)
 	if err != nil || help {
 		return err, help
 	}
 
-	for _, a := range c.args {
-		if len(args) == 0 {
-			if !a.optional {
-				return fmt.Errorf("missing %s argument", a.name), false
+	if c.argsState >= argsMulti {
+		// parse positional arguments in reverse order
+		for i := len(c.args) - 1; i >= 0; i-- {
+			a := c.args[i]
+			if len(args) == 0 {
+				if !a.optional {
+					return fmt.Errorf("missing %s argument", a.name), false
+				} else {
+					return nil, false
+				}
+			}
+			if a.single != nil {
+				*a.single = args[len(args)-1]
+				args = args[:len(args)-1]
 			} else {
-				return nil, false
+				*a.multi = make([]string, len(args))
+				for i, arg := range args {
+					(*a.multi)[i] = arg
+				}
+				args = nil
 			}
 		}
-		if a.single != nil {
-			*a.single = args[0]
-			args = args[1:]
-		} else {
-			*a.multi = make([]string, len(args))
-			for i, arg := range args {
-				(*a.multi)[i] = arg
+	} else {
+		// parse positional arguments in-order
+		for _, a := range c.args {
+			if len(args) == 0 {
+				if !a.optional {
+					return fmt.Errorf("missing %s argument", a.name), false
+				} else {
+					return nil, false
+				}
+			}
+			if a.single != nil {
+				*a.single = args[0]
+				args = args[1:]
+			} else {
+				*a.multi = make([]string, len(args))
+				for i, arg := range args {
+					(*a.multi)[i] = arg
+				}
+				args = nil
 			}
 		}
 	}
