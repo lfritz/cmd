@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var helpFlags = map[string]bool{
@@ -101,6 +102,96 @@ func (f *Flags) Int(spec string, p *int, name, usage string) {
 		*p = i
 		return nil
 	})
+}
+
+// Float defines a flag with a float64 value.
+func (f *Flags) Float(spec string, p *float64, name, usage string) {
+	f.addOption(spec, name, usage, func(name, value string) error {
+		f, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("invalid %s argument '%s'", name, value)
+		}
+		*p = f
+		return nil
+	})
+}
+
+// Duration defines a flag with a time.Duration value.
+func (f *Flags) Duration(spec string, p *time.Duration, name, usage string) {
+	f.addOption(spec, name, usage, func(name, value string) error {
+		d, err := time.ParseDuration(value)
+		if err != nil {
+			return fmt.Errorf("invalid %s argument '%s'", name, value)
+		}
+		*p = d
+		return nil
+	})
+}
+
+// Metric defines a flag with an integer value that allows the user to use metric suffixes, for
+// example “5k“ for 5000. Both lower-case and upper-case suffixes work.
+func (f *Flags) Metric(spec string, p *int, name, usage string) {
+	f.addOption(spec, name, usage, func(name, value string) error {
+		i, ok := parseWithSuffix(value, metricSuffixMap)
+		if !ok {
+			return fmt.Errorf("invalid %s argument '%s'", name, value)
+		}
+		*p = i
+		return nil
+	})
+}
+
+var metricSuffixMap = map[string]int{
+	"k": 1000,
+	"m": 1000000,
+	"g": 1000000000,
+	"t": 1000000000000,
+	"p": 1000000000000000,
+	"e": 1000000000000000000,
+}
+
+// Bytes defines a flag with an integer value that allows the user to use binary suffixes, for
+// example “5k“ for 5*1024. Both lower-case and upper-case suffixes work.
+func (f *Flags) Bytes(spec string, p *int, name, usage string) {
+	f.addOption(spec, name, usage, func(name, value string) error {
+		i, ok := parseWithSuffix(value, bytesSuffixMap)
+		if !ok {
+			return fmt.Errorf("invalid %s argument '%s'", name, value)
+		}
+		*p = i
+		return nil
+	})
+}
+
+var bytesSuffixMap = map[string]int{
+	"k": 1 << 10,
+	"m": 1 << 20,
+	"g": 1 << 30,
+	"t": 1 << 40,
+	"p": 1 << 50,
+	"e": 1 << 60,
+}
+
+var suffixRe = regexp.MustCompile(`^(-?[0-9]+)([a-zA-Z])?$`)
+
+func parseWithSuffix(s string, suffixMap map[string]int) (i int, ok bool) {
+	match := suffixRe.FindStringSubmatch(s)
+	if match == nil {
+		return 0, false
+	}
+	number, suffix := match[1], match[2]
+
+	i, err := strconv.Atoi(number)
+	if err != nil {
+		return 0, false
+	}
+
+	factor, ok := suffixMap[strings.ToLower(suffix)]
+	if !ok {
+		return 0, false
+	}
+
+	return i * factor, true
 }
 
 func (f *Flags) addOption(spec, name, usage string, set func(name, value string) error) {
