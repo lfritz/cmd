@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -11,33 +10,29 @@ import (
 	"unsafe"
 )
 
-type helpPrintable interface {
-	summary() string
-	details() string
-	usage() string
-	printDefinitions(w io.Writer, columns int)
+func helpAndExit(usage, summary, details string, defs []definitionList) {
+	s := formatHelp(usage, summary, details, defs)
+	fmt.Fprintf(os.Stdout, s)
+	os.Exit(0)
 }
 
-func printHelp(h helpPrintable) {
-	// TODO allow multiple paragraphs in summary and details
+func formatHelp(usage, summary, details string, defs []definitionList) string {
 	columns := terminalColumns()
-	w := os.Stdout
-	fmt.Fprintln(w, h.usage())
-	fmt.Fprintln(w)
-	summary := h.summary()
+	sections := []string{}
+	sections = append(sections, wrapParagraphs(usage, columns))
 	if summary != "" {
-		for _, line := range wrapText(summary, columns) {
-			fmt.Fprintln(w, line)
-		}
-		fmt.Fprintln(w)
+		sections = append(sections, wrapParagraphs(summary, columns))
 	}
-	h.printDefinitions(w, columns)
-	details := h.details()
+	for _, d := range defs {
+		if len(d.definitions) == 0 {
+			continue
+		}
+		sections = append(sections, d.format(columns))
+	}
 	if details != "" {
-		for _, line := range wrapText(details, columns) {
-			fmt.Fprintln(w, line)
-		}
+		sections = append(sections, wrapParagraphs(details, columns))
 	}
+	return strings.Join(sections, "\n")
 }
 
 type winsize struct {
@@ -69,6 +64,18 @@ func terminalColumns() int {
 
 var whitespaceRe = regexp.MustCompile(`\s+`)
 
+func wrapParagraphs(text string, columns int) string {
+	b := new(strings.Builder)
+	paragraphs := strings.Split(text, "\n\n")
+	for _, p := range paragraphs {
+		lines := wrapText(p, columns)
+		for _, line := range lines {
+			fmt.Fprintln(b, line)
+		}
+	}
+	return b.String()
+}
+
 func wrapText(text string, columns int) []string {
 	// split text into words and convert to []rune
 	words := whitespaceRe.Split(text, -1)
@@ -98,6 +105,59 @@ func wrapText(text string, columns int) []string {
 	return lines
 }
 
+type definitionList struct {
+	title       string
+	definitions []*definition
+}
+
+func (d *definitionList) format(columns int) string {
+	b := new(strings.Builder)
+
+	// set a maximum for left column
+	maxLeftCols := (columns - 4) / 2
+	if maxLeftCols > 25 {
+		maxLeftCols = 25
+	}
+
+	// get text for left column
+	terms := []termLines{}
+	for _, def := range d.definitions {
+		terms = append(terms, def.formatTerms(maxLeftCols))
+	}
+
+	// find out size of left and right column
+	leftCols := 0
+	for _, t := range terms {
+		if t.inline == "" {
+			continue
+		}
+		cols := len([]rune(t.inline))
+		if cols > leftCols {
+			leftCols = cols
+		}
+	}
+	rightCols := columns - 4 - leftCols
+	if rightCols > 80 {
+		rightCols = 80
+	}
+
+	// print text
+	fmt.Fprintf(b, "%s:\n", d.title)
+	for i, def := range d.definitions {
+		flagDef := terms[i]
+		for _, line := range flagDef.separate {
+			fmt.Fprintf(b, "  %s\n", line)
+		}
+		usageLines := wrapText(def.text, rightCols)
+		fmt.Fprintf(b, "  %-*s  %s\n", leftCols, flagDef.inline, usageLines[0])
+		for _, line := range usageLines[1:] {
+			fmt.Fprintf(b, "%*s%s\n", 2+leftCols+2, "", line)
+		}
+	}
+
+	return b.String()
+}
+
 type definition struct {
 	terms []string
 	text  string
@@ -124,48 +184,5 @@ func (d *definition) formatTerms(maxCols int) termLines {
 	}
 	return termLines{
 		inline: joined,
-	}
-}
-
-func printDefinitions(w io.Writer, defs []*definition, columns int) {
-	// set a maximum for left column
-	maxLeftCols := (columns - 4) / 2
-	if maxLeftCols > 25 {
-		maxLeftCols = 25
-	}
-
-	// get text for left column
-	terms := []termLines{}
-	for _, def := range defs {
-		terms = append(terms, def.formatTerms(maxLeftCols))
-	}
-
-	// find out size of left and right column
-	leftCols := 0
-	for _, t := range terms {
-		if t.inline == "" {
-			continue
-		}
-		cols := len([]rune(t.inline))
-		if cols > leftCols {
-			leftCols = cols
-		}
-	}
-	rightCols := columns - 4 - leftCols
-	if rightCols > 80 {
-		rightCols = 80
-	}
-
-	// print
-	for i, def := range defs {
-		flagDef := terms[i]
-		for _, line := range flagDef.separate {
-			fmt.Fprintf(w, "  %s\n", line)
-		}
-		usageLines := wrapText(def.text, rightCols)
-		fmt.Fprintf(w, "  %-*s  %s\n", leftCols, flagDef.inline, usageLines[0])
-		for _, line := range usageLines[1:] {
-			fmt.Fprintf(w, "%*s%s\n", 2+leftCols+2, "", line)
-		}
 	}
 }

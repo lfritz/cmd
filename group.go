@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
@@ -40,9 +39,35 @@ func (g *Group) Group(name string) *Group {
 	return group
 }
 
-// PrintHelp prints a help message to stdout.
-func (g *Group) PrintHelp() {
-	printHelp(g)
+func (g *Group) errorAndExit(msg string) {
+	w := os.Stderr
+	fmt.Fprintf(w, "%s: %s\n", g.name, msg)
+	fmt.Fprintf(w, "Try '%s help' for more information.", g.name)
+	os.Exit(2)
+}
+
+func (g *Group) helpAndExit() {
+	fmt.Fprintf(os.Stdout, g.Help())
+	os.Exit(0)
+}
+
+// Help returns a help message.
+func (g *Group) Help() string {
+	defs := []definitionList{
+		{
+			title:       "Options",
+			definitions: g.Flags.defs,
+		},
+		{
+			title:       "Groups",
+			definitions: g.groupDefinitions(),
+		},
+		{
+			title:       "Commands",
+			definitions: g.commandDefinitions(),
+		},
+	}
+	return formatHelp(g.usage(), g.Summary, g.Details, defs)
 }
 
 func (g *Group) summary() string {
@@ -53,11 +78,7 @@ func (g *Group) details() string {
 	return g.Details
 }
 
-func (g *Group) printDefinitions(w io.Writer, columns int) {
-	// options
-	g.Flags.printDefinitions(w, columns)
-
-	// groups
+func (g *Group) groupDefinitions() []*definition {
 	defs := []*definition{}
 	for name, g := range g.groups {
 		defs = append(defs, &definition{
@@ -65,25 +86,18 @@ func (g *Group) printDefinitions(w io.Writer, columns int) {
 			text:  g.Summary,
 		})
 	}
-	if len(defs) > 0 {
-		fmt.Fprintln(w, "Groups:")
-		printDefinitions(w, defs, columns)
-		fmt.Fprintln(w)
-	}
+	return defs
+}
 
-	// commands
-	defs = []*definition{}
+func (g *Group) commandDefinitions() []*definition {
+	defs := []*definition{}
 	for name, c := range g.commands {
 		defs = append(defs, &definition{
 			terms: []string{name},
 			text:  c.Summary,
 		})
 	}
-	if len(defs) > 0 {
-		fmt.Fprintln(w, "Commands:")
-		printDefinitions(w, defs, columns)
-		fmt.Fprintln(w)
-	}
+	return defs
 }
 
 func (g *Group) usage() string {
@@ -108,20 +122,20 @@ func (g *Group) Run(args []string) {
 	// call Flags.parse
 	err, help, args := g.Flags.parse(args)
 	if err != nil {
-		g.fail(err.Error())
+		g.errorAndExit(err.Error())
 	}
 	if help {
-		g.help()
+		g.helpAndExit()
 	}
 
 	// select group or command
 	if len(args) == 0 {
-		g.fail("command expected")
+		g.errorAndExit("command expected")
 	}
 	a := args[0]
 	args = args[1:]
 	if a == "help" {
-		g.help()
+		g.helpAndExit()
 	}
 	if group, ok := g.groups[a]; ok {
 		group.Run(args)
@@ -131,17 +145,5 @@ func (g *Group) Run(args []string) {
 		command.Run(args)
 		return
 	}
-	g.fail(fmt.Sprintf("'%s' is not a %s command", a, g.name))
-}
-
-func (g *Group) fail(msg string) {
-	w := os.Stderr
-	fmt.Fprintf(w, "%s: %s\n", g.name, msg)
-	fmt.Fprintf(w, "Try '%s help' for more information.", g.name)
-	os.Exit(2)
-}
-
-func (g *Group) help() {
-	g.PrintHelp()
-	os.Exit(0)
+	g.errorAndExit(fmt.Sprintf("'%s' is not a %s command", a, g.name))
 }

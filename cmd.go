@@ -110,17 +110,27 @@ func (c *Cmd) addArgs(name string, p *[]string, optional bool) {
 	})
 }
 
-// PrintHelp prints a help message to stdout.
-func (c *Cmd) PrintHelp() {
-	printHelp(c)
+func (c *Cmd) errorAndExit(err error) {
+	w := os.Stderr
+	fmt.Fprintf(w, "%s: %s\n", c.name, err)
+	fmt.Fprintf(w, "Try '%s --help' for more information.", c.name)
+	os.Exit(2)
 }
 
-func (c *Cmd) summary() string {
-	return c.Summary
+func (c *Cmd) helpAndExit() {
+	fmt.Fprintf(os.Stdout, c.Help())
+	os.Exit(0)
 }
 
-func (c *Cmd) details() string {
-	return c.Details
+// Help returns a help message.
+func (c *Cmd) Help() string {
+	defs := []definitionList{
+		{
+			title:       "Options",
+			definitions: c.Flags.defs,
+		},
+	}
+	return formatHelp(c.usage(), c.Summary, c.Details, defs)
 }
 
 func (c *Cmd) usage() string {
@@ -148,11 +158,10 @@ func (c *Cmd) usage() string {
 func (c *Cmd) Run(args []string) {
 	err, help := c.parse(args)
 	if err != nil {
-		c.fail(err)
+		c.errorAndExit(err)
 	}
 	if help {
-		c.PrintHelp()
-		os.Exit(0)
+		c.helpAndExit()
 	}
 	c.f()
 }
@@ -214,11 +223,4 @@ func (c *Cmd) parse(args []string) (err error, help bool) {
 	}
 
 	return nil, false
-}
-
-func (c *Cmd) fail(err error) {
-	w := os.Stderr
-	fmt.Fprintf(w, "%s: %s\n", c.name, err)
-	fmt.Fprintf(w, "Try '%s --help' for more information.", c.name)
-	os.Exit(2)
 }

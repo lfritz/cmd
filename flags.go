@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -57,14 +56,6 @@ func (f *Flags) usage() string {
 		return "[OPTION]"
 	default:
 		return "[OPTION]..."
-	}
-}
-
-func (f *Flags) printDefinitions(w io.Writer, columns int) {
-	if len(f.defs) > 0 {
-		fmt.Fprintln(w, "Options:")
-		printDefinitions(w, f.defs, columns)
-		fmt.Fprintln(w)
 	}
 }
 
