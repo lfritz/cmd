@@ -2,12 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"regexp"
-	"strconv"
 	"strings"
-	"syscall"
-	"unsafe"
 )
 
 func formatHelp(usage, summary, details string, defs []definitionList) string {
@@ -27,33 +23,6 @@ func formatHelp(usage, summary, details string, defs []definitionList) string {
 		sections = append(sections, wrapParagraphs(details, columns))
 	}
 	return strings.Join(sections, "\n")
-}
-
-type winsize struct {
-	Row    uint16
-	Col    uint16
-	Xpixel uint16
-	Ypixel uint16
-}
-
-func terminalColumns() int {
-	// try $COLUMNS env variable
-	cols, err := strconv.Atoi(os.Getenv("COLUMNS"))
-	if err == nil {
-		return cols
-	}
-
-	// try syscall
-	ws := &winsize{}
-	retCode, _, _ := syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(syscall.Stdin),
-		uintptr(syscall.TIOCGWINSZ),
-		uintptr(unsafe.Pointer(ws)))
-	if int(retCode) != -1 {
-		return int(ws.Col)
-	}
-
-	return 80
 }
 
 var whitespaceRe = regexp.MustCompile(`\s+`)
