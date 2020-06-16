@@ -10,12 +10,6 @@ import (
 	"unsafe"
 )
 
-func helpAndExit(usage, summary, details string, defs []definitionList) {
-	s := formatHelp(usage, summary, details, defs)
-	fmt.Fprintf(os.Stdout, s)
-	os.Exit(0)
-}
-
 func formatHelp(usage, summary, details string, defs []definitionList) string {
 	columns := terminalColumns()
 	sections := []string{}
