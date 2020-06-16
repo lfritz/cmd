@@ -67,7 +67,7 @@ func terminalColumns() int {
 	return 80
 }
 
-var whitespaceRe = regexp.MustCompile(`\W+`)
+var whitespaceRe = regexp.MustCompile(`\s+`)
 
 func wrapText(text string, columns int) []string {
 	// split text into words and convert to []rune
