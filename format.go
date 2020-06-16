@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-func formatHelp(usage, summary, details string, defs []definitionList) string {
+// formatHelp formats the help text for Cmd or Group.
+func formatHelp(usage, summary, details string, defs []*definitionList) string {
 	columns := terminalColumns()
 	sections := []string{}
 	sections = append(sections, wrapParagraphs(usage, columns))
@@ -27,19 +28,26 @@ func formatHelp(usage, summary, details string, defs []definitionList) string {
 
 var whitespaceRe = regexp.MustCompile(`\s+`)
 
+// wrapParagraphs wraps text to fit the given number of columns, preserving paragraphs separated by
+// a blank line.
 func wrapParagraphs(text string, columns int) string {
-	b := new(strings.Builder)
-	paragraphs := strings.Split(text, "\n\n")
-	for _, p := range paragraphs {
+	input := strings.Split(text, "\n\n")
+	output := []string{}
+	for _, p := range input {
+		b := new(strings.Builder)
 		lines := wrapText(p, columns)
 		for _, line := range lines {
 			fmt.Fprintln(b, line)
 		}
+		output = append(output, b.String())
 	}
-	return b.String()
+	return strings.Join(output, "\n")
 }
 
+// wrapText splits text into lines that fit the given number of columns.
 func wrapText(text string, columns int) []string {
+	text = strings.TrimSpace(text)
+
 	// split text into words and convert to []rune
 	words := whitespaceRe.Split(text, -1)
 	runeWords := make([][]rune, len(words))
@@ -68,11 +76,14 @@ func wrapText(text string, columns int) []string {
 	return lines
 }
 
+// A definitionList is used to represent a list of flags, commands, or groups.
 type definitionList struct {
 	title       string
 	definitions []*definition
 }
 
+// format prints the definitionList in a nicely-formatted way that fits in the given number of
+// columns.
 func (d *definitionList) format(columns int) string {
 	b := new(strings.Builder)
 
@@ -121,16 +132,19 @@ func (d *definitionList) format(columns int) string {
 	return b.String()
 }
 
+// A definition describes one definition.
 type definition struct {
 	terms []string
 	text  string
 }
 
+// termLines defines the text printed in the left column for a definition.
 type termLines struct {
 	separate []string
 	inline   string
 }
 
+// formatTerms formats the left columns for a definition.
 func (d *definition) formatTerms(maxCols int) termLines {
 	joined := strings.Join(d.terms, ", ")
 	last := len(d.terms) - 1

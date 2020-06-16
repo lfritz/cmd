@@ -124,7 +124,7 @@ func (c *Cmd) helpAndExit() {
 
 // Help returns a help message.
 func (c *Cmd) Help() string {
-	defs := []definitionList{
+	defs := []*definitionList{
 		{
 			title:       "Options",
 			definitions: c.Flags.defs,

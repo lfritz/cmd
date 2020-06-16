@@ -53,7 +53,7 @@ func (g *Group) helpAndExit() {
 
 // Help returns a help message.
 func (g *Group) Help() string {
-	defs := []definitionList{
+	defs := []*definitionList{
 		{
 			title:       "Options",
 			definitions: g.Flags.defs,
