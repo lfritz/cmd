@@ -119,6 +119,10 @@ func (g *Group) usage() string {
 // Run parses the given command-line arguments, sets values for given flags and calls the function
 // for the selected command. It’s usually called with os.Args[1:].
 func (g *Group) Run(args []string) {
+	g.run(args, false)
+}
+
+func (g *Group) run(args []string, helpMode bool) {
 	// call Flags.parse
 	err, help, args := g.Flags.parse(args)
 	if err != nil {
@@ -130,19 +134,26 @@ func (g *Group) Run(args []string) {
 
 	// select group or command
 	if len(args) == 0 {
+		if helpMode {
+			g.helpAndExit()
+		}
 		g.errorAndExit("command expected")
 	}
-	a := args[0]
-	args = args[1:]
+	a, args := args[0], args[1:]
 	if a == "help" {
-		g.helpAndExit()
+		g.run(args, true)
+		return
 	}
 	if group, ok := g.groups[a]; ok {
-		group.Run(args)
+		group.run(args, helpMode)
 		return
 	}
 	if command, ok := g.commands[a]; ok {
-		command.Run(args)
+		if helpMode {
+			command.helpAndExit()
+		} else {
+			command.Run(args)
+		}
 		return
 	}
 	g.errorAndExit(fmt.Sprintf("'%s' is not a %s command", a, g.name))
