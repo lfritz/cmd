@@ -36,7 +36,7 @@ const (
 	argsOptinalRegular
 )
 
-// New returns a new command with the specified name.
+// New returns a new command.
 func New(name string, f func()) *Cmd {
 	return &Cmd{
 		Flags: newFlags(),
