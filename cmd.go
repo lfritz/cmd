@@ -8,7 +8,15 @@ import (
 	"strings"
 )
 
-// A Cmd represents a command with command-line flags and positional arguments.
+// A Cmd represents a command with flags and positional arguments.
+//
+// The *Arg methods will panic if adding the argument would mean the command-line can’t be parsed
+// unambiguously anymore. For example, successive calls to OptionalArg, Arg, OptionalArg mean that
+// if the use passes two arguments, there’s no way to tell which optional argument they’re trying to
+// specify.
+//
+// The Summary and Details fields are printed at the beginning and end, respectively, of the help
+// message. They won’t be printed if left empty.
 type Cmd struct {
 	Flags
 	Summary, Details string
@@ -36,7 +44,8 @@ const (
 	argsOptinalRegular
 )
 
-// New returns a new command.
+// New returns a new command that calls the given function after parsing arguments. The name is used
+// in help and error messages.
 func New(name string, f func()) *Cmd {
 	return &Cmd{
 		Flags: newFlags(),
@@ -153,8 +162,8 @@ func (c *Cmd) usage() string {
 	return strings.Join(line, " ")
 }
 
-// Run parses the given command-line arguments, sets values for given flags and runs the callback
-// function. It’s usually called with os.Args[1:].
+// Run parses the given command-line arguments, sets values for given flags and runs the function
+// provided to New. It’s usually called with os.Args[1:].
 func (c *Cmd) Run(args []string) {
 	err, help := c.parse(args)
 	if err != nil {

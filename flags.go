@@ -14,8 +14,8 @@ var helpFlags = map[string]bool{
 	"--help": true,
 }
 
-// Flags is used to define flags with and without arguments. It’s meant to be used through Cmd and
-// Group.
+// Flags is used to define flags with and without arguments. It’s embedded in Cmd and Group; you
+// usually call its methods directly on those types.
 type Flags struct {
 	// used for parsing
 	flags   map[string]*bool
@@ -95,7 +95,7 @@ func (f *Flags) Int(spec string, p *int, name, usage string) {
 	})
 }
 
-// Float defines a flag with a float64 value.
+// Float defines a flag with a float64 value. See strconv.ParseFloat for the format it recognizes.
 func (f *Flags) Float(spec string, p *float64, name, usage string) {
 	f.addOption(spec, name, usage, func(name, value string) error {
 		f, err := strconv.ParseFloat(value, 64)
@@ -107,7 +107,8 @@ func (f *Flags) Float(spec string, p *float64, name, usage string) {
 	})
 }
 
-// Duration defines a flag with a time.Duration value.
+// Duration defines a flag with a time.Duration value. See time.ParseDuration for the format it
+// recognizes.
 func (f *Flags) Duration(spec string, p *time.Duration, name, usage string) {
 	f.addOption(spec, name, usage, func(name, value string) error {
 		d, err := time.ParseDuration(value)

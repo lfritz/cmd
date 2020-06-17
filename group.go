@@ -7,6 +7,9 @@ import (
 )
 
 // A Group represents a group of commands. Groups can be nested arbitrarily.
+//
+// The Summary and Details fields are printed at the beginning and end, respectively, of the help
+// message. They won’t be printed if left empty.
 type Group struct {
 	Flags
 	Summary, Details string
@@ -25,7 +28,7 @@ func NewGroup(name string) *Group {
 	}
 }
 
-// Command adds a command. The given function will be called if this command is selected.
+// Command adds a command.
 func (g *Group) Command(name string, f func()) *Cmd {
 	command := New(fmt.Sprintf("%s %s", g.name, name), f)
 	g.commands[name] = command
