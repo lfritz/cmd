@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestUsage(t *testing.T) {
+func TestCmdUsage(t *testing.T) {
 	c := New("cp", func() {})
 	c.Flag("-f", new(bool), "")
 	c.Flag("-r", new(bool), "")
