@@ -4,96 +4,95 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
-func TestFlagsParse(t *testing.T) {
+func TestUsage(t *testing.T) {
+	f := newFlags()
+	f.Flag("-x", new(bool), "")
+	f.Flag("-y", new(bool), "")
+	got := f.usage()
+	want := "[OPTION]..."
+	if got != want {
+		t.Errorf("usage returned %v, want %v", got, want)
+	}
+}
+
+func TestParse(t *testing.T) {
 	var (
-		quiet bool
-		name  string
+		size     int
+		timeout  time.Duration
+		v        bool
+		percent  float64
+		count    int
+		distance int
+		name     string
 	)
-	flags := Flags{
-		flags:   make(map[string]*bool),
-		options: make(map[string]*option),
+	f := newFlags()
+	f.Bytes("-m --max-size", &size, "SIZE", "")
+	f.Duration("-timeout", &timeout, "D", "")
+	f.Flag("-v", &v, "")
+	f.Float("--percent", &percent, "P", "")
+	f.Int("--count", &count, "N", "")
+	f.Metric("-d", &distance, "DISTANCE", "")
+	f.String("-name", &name, "NAME", "")
+
+	args := "-m 2k -timeout 5m -v --percent 99.5 --count 7 -d 150G -name moon"
+	f.parse(strings.Split(args, " "))
+	wantSize := 2048
+	wantTimeout := 5 * time.Minute
+	wantV := true
+	wantPercent := 99.5
+	wantCount := 7
+	wantDistance := 150 * 1000000000
+	wantName := "moon"
+	if size != wantSize {
+		t.Errorf("parse set size = %v, want %v", size, wantSize)
 	}
-	flags.Flag("--quiet", &quiet, "")
-	flags.String("--name", &name, "NAME", "")
-
-	cases := []struct {
-		args      string
-		err, help bool
-		following []string
-		name      string
-	}{
-		{
-			args:      "--quiet --name Joe foo",
-			name:      "Joe",
-			following: []string{"foo"},
-		},
-		{
-			args:      "--quiet --name=Joe foo",
-			name:      "Joe",
-			following: []string{"foo"},
-		},
-		{
-			args: "--help",
-			help: true,
-		},
-		{
-			args: "--quiet --name",
-			err:  true,
-		},
+	if timeout != wantTimeout {
+		t.Errorf("parse set timeout = %v, want %v", timeout, wantTimeout)
 	}
-
-	for _, c := range cases {
-		quiet = false
-		name = ""
-
-		args := strings.Split(c.args, " ")
-		err, help, following := flags.parse(args)
-		if c.err {
-			if err == nil {
-				t.Errorf("Flags.parse(%v) didn't return error", args)
-			}
-			continue
-		}
-		if err != nil {
-			t.Errorf("Flags.parse returned error: %v", err)
-		}
-		if c.help {
-			if !help {
-				t.Errorf("Flags.parse(%v) didn't recognize help flag", args)
-			}
-			continue
-		}
-		if name != c.name {
-			t.Errorf("Flags.parse(%v) set name to %v, want %v", args, name, c.name)
-		}
-		if !reflect.DeepEqual(following, c.following) {
-			t.Errorf("Flags.parse(%v) returned %v, want %v", args, following, c.following)
-		}
+	if v != wantV {
+		t.Errorf("parse set v = %v, want %v", v, wantV)
+	}
+	if percent != wantPercent {
+		t.Errorf("parse set percent = %v, want %v", percent, wantPercent)
+	}
+	if count != wantCount {
+		t.Errorf("parse set count = %v, want %v", count, wantCount)
+	}
+	if distance != wantDistance {
+		t.Errorf("parse set distance = %v, want %v", distance, wantDistance)
+	}
+	if name != wantName {
+		t.Errorf("parse set name = %v, want %v", name, wantName)
 	}
 }
 
 func TestSplitSpec(t *testing.T) {
-	spec := "-c --color"
-	want := []string{"-c", "--color"}
-	got, err := splitSpec(spec)
-	if err != nil {
-		t.Fatalf("splitSpec(%v) returned error: %v", spec, err)
+	cases := []struct {
+		spec      string
+		want      []string
+		wantError bool
+	}{
+		{"-v", []string{"-v"}, false},
+		{"-v --verbose -d --debug", []string{"-v", "--verbose", "-d", "--debug"}, false},
+		{"", nil, true},
+		{"---verbose", nil, true},
+		{"hello", nil, true},
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("splitSpec(%v) == %v, want %v", spec, got, want)
-	}
-
-	for _, spec := range []string{
-		"",
-		"c",
-		"-color shape",
-		"---shape",
-	} {
-		_, err := splitSpec(spec)
-		if err == nil {
-			t.Errorf("splitSpec(%v) didn't return error", spec)
+	for _, c := range cases {
+		got, err := splitSpec(c.spec)
+		if err != nil && !c.wantError {
+			t.Errorf("splitSpec(%v) returned error", c.spec)
+			continue
+		}
+		if err == nil && c.wantError {
+			t.Errorf("splitSpec(%v) didn't return error", c.spec)
+			continue
+		}
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("splitSpec(%v) returned %v, want %v", c.spec, got, c.want)
 		}
 	}
 }
