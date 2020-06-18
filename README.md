@@ -1,5 +1,9 @@
 # cmd
 
+![Go build, lint and test](https://github.com/lfritz/cmd/workflows/Go%20build,%20lint%20and%20test/badge.svg)
+[![GoDoc](https://godoc.org/github.com/lfritz/cmd?status.svg)](https://godoc.org/github.com/lfritz/cmd)
+[![Go Report Card](https://goreportcard.com/badge/github.com/lfritz/cmd)](https://goreportcard.com/report/github.com/lfritz/cmd)
+
 cmd is a simple but powerful library for building command-line programs. It supports flags,
 positional arguments, and nested groups of commands.
 
