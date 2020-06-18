@@ -18,7 +18,7 @@ func ExampleCmd() {
 	c.Flag("-a --all", &all, "do not ignore entries starting with .")
 	c.String("--hide", &hidePattern, "PATTERN",
 		"do not list implied entries matching shell PATTERN")
-	c.OptionalArgs("FILE", &files)
+	c.OptionalRepeatedArg("FILE", &files)
 	fmt.Print(c.Help())
 	// Output:
 	// Usage: ls [OPTION]... [FILE]...
@@ -54,7 +54,7 @@ func ExampleGroup() {
 	gitStatus := git.Command("status", func() {})
 	gitStatus.Summary = "Show the working tree status"
 	gitStatus.Flag("-s --short", &status.short, "Give the output in the short-format.")
-	gitStatus.OptionalArgs("PATHSPEC...", &status.pathspec)
+	gitStatus.OptionalRepeatedArg("PATHSPEC...", &status.pathspec)
 
 	gitInit := git.Command("init", func() {})
 	gitInit.Summary = "Create an empty Git repository"

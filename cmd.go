@@ -93,13 +93,13 @@ func (c *Cmd) OptionalArg(name string, p *string) {
 	})
 }
 
-// Args defines an argument that can be present one or more times.
-func (c *Cmd) Args(name string, p *[]string) {
+// RepeatedArg defines an argument that can be present one or more times.
+func (c *Cmd) RepeatedArg(name string, p *[]string) {
 	c.addArgs(name, p, false)
 }
 
-// OptionalArgs defines an argument that can be present zero or more times.
-func (c *Cmd) OptionalArgs(name string, p *[]string) {
+// OptionalRepeatedArg defines an argument that can be present zero or more times.
+func (c *Cmd) OptionalRepeatedArg(name string, p *[]string) {
 	c.addArgs(name, p, true)
 }
 

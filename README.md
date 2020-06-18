@@ -30,7 +30,7 @@ func main() {
 	c.String("-m --mode", &mode, "MODE", "set file mode (as in chmod)")
 	c.Flag("-p --parents", &parents, "make parent directories as needed")
 	c.Flag("-v --verbose", &verbose, "print a message for each created directory")
-	c.Args("DIRECTORY", &dir)
+	c.RepeatedArg("DIRECTORY", &dir)
 	c.Run(os.Args[1:])
 }
 

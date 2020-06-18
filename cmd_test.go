@@ -9,7 +9,7 @@ func TestCmdUsage(t *testing.T) {
 	c := New("cp", func() {})
 	c.Flag("-f", new(bool), "")
 	c.Flag("-r", new(bool), "")
-	c.Args("SOURCE", new([]string))
+	c.RepeatedArg("SOURCE", new([]string))
 	c.Arg("DEST", new(string))
 	got := c.usage()
 	want := "Usage: cp [OPTION]... SOURCE... DEST"
@@ -29,8 +29,8 @@ func ambiguousArgsTest(t *testing.T, f func(c *Cmd)) {
 
 func TestAmbiguousArgs(t *testing.T) {
 	ambiguousArgsTest(t, func(c *Cmd) {
-		c.Args("SOURCE", new([]string))
-		c.Args("DEST", new([]string))
+		c.RepeatedArg("SOURCE", new([]string))
+		c.RepeatedArg("DEST", new([]string))
 	})
 	ambiguousArgsTest(t, func(c *Cmd) {
 		c.OptionalArg("SOURCE", new(string))
@@ -38,18 +38,18 @@ func TestAmbiguousArgs(t *testing.T) {
 		c.OptionalArg("BACKUP", new(string))
 	})
 	ambiguousArgsTest(t, func(c *Cmd) {
-		c.Args("SOURCE", new([]string))
+		c.RepeatedArg("SOURCE", new([]string))
 		c.OptionalArg("DEST", new(string))
 	})
 }
 
-func TestMultiArgs(t *testing.T) {
+func TestRepeatedArgs(t *testing.T) {
 	var x, y string
 	var zs []string
 	command := New("command", func() {})
 	command.Arg("X", &x)
 	command.Arg("Y", &y)
-	command.Args("Z", &zs)
+	command.RepeatedArg("Z", &zs)
 	cases := []struct {
 		args                []string
 		wantError, wantHelp bool
