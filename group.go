@@ -45,7 +45,7 @@ func (g *Group) Group(name string) *Group {
 func (g *Group) errorAndExit(msg string) {
 	w := os.Stderr
 	fmt.Fprintf(w, "%s: %s\n", g.name, msg)
-	fmt.Fprintf(w, "Try '%s help' for more information.", g.name)
+	fmt.Fprintf(w, "Try '%s help' for more information.\n", g.name)
 	os.Exit(2)
 }
 

@@ -122,7 +122,7 @@ func (c *Cmd) addArgs(name string, p *[]string, optional bool) {
 func (c *Cmd) errorAndExit(err error) {
 	w := os.Stderr
 	fmt.Fprintf(w, "%s: %s\n", c.name, err)
-	fmt.Fprintf(w, "Try '%s --help' for more information.", c.name)
+	fmt.Fprintf(w, "Try '%s --help' for more information.\n", c.name)
 	os.Exit(2)
 }
 
