@@ -127,7 +127,7 @@ func (g *Group) Run(args []string) {
 
 func (g *Group) run(args []string, helpMode bool) {
 	// call Flags.parse
-	err, help, args := g.Flags.parse(args)
+	help, args, err := g.Flags.parse(args)
 	if err != nil {
 		g.errorAndExit(err.Error())
 	}

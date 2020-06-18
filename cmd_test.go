@@ -84,7 +84,7 @@ func TestMultiArgs(t *testing.T) {
 	for _, c := range cases {
 		x, y = "", ""
 		zs = nil
-		err, help := command.parse(c.args)
+		help, err := command.parse(c.args)
 		if !((err != nil) == c.wantError && help == c.wantHelp) {
 			errorString := "nil"
 			if c.wantError {
@@ -140,7 +140,7 @@ func TestOptionalArgs(t *testing.T) {
 	}
 	for _, c := range cases {
 		x, y, z = "", "", ""
-		err, help := command.parse(c.args)
+		help, err := command.parse(c.args)
 		if !((err != nil) == c.wantError && help == c.wantHelp) {
 			errorString := "nil"
 			if c.wantError {

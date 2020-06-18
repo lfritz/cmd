@@ -165,7 +165,7 @@ func (c *Cmd) usage() string {
 // Run parses the given command-line arguments, sets values for given flags and runs the function
 // provided to New. It’s usually called with os.Args[1:].
 func (c *Cmd) Run(args []string) {
-	err, help := c.parse(args)
+	help, err := c.parse(args)
 	if err != nil {
 		c.errorAndExit(err)
 	}
@@ -175,11 +175,11 @@ func (c *Cmd) Run(args []string) {
 	c.f()
 }
 
-func (c *Cmd) parse(args []string) (err error, help bool) {
+func (c *Cmd) parse(args []string) (help bool, err error) {
 	// parse flags
-	err, help, args = c.Flags.parse(args)
+	help, args, err = c.Flags.parse(args)
 	if err != nil || help {
-		return err, help
+		return help, err
 	}
 
 	if c.argsState >= argsMulti {
@@ -188,10 +188,9 @@ func (c *Cmd) parse(args []string) (err error, help bool) {
 			a := c.args[i]
 			if len(args) == 0 {
 				if !a.optional {
-					return fmt.Errorf("missing %s argument", a.name), false
-				} else {
-					return nil, false
+					return false, fmt.Errorf("missing %s argument", a.name)
 				}
+				return false, nil
 			}
 			if a.single != nil {
 				*a.single = args[len(args)-1]
@@ -209,10 +208,9 @@ func (c *Cmd) parse(args []string) (err error, help bool) {
 		for _, a := range c.args {
 			if len(args) == 0 {
 				if !a.optional {
-					return fmt.Errorf("missing %s argument", a.name), false
-				} else {
-					return nil, false
+					return false, fmt.Errorf("missing %s argument", a.name)
 				}
+				return false, nil
 			}
 			if a.single != nil {
 				*a.single = args[0]
@@ -228,8 +226,8 @@ func (c *Cmd) parse(args []string) (err error, help bool) {
 	}
 
 	if len(args) > 0 {
-		return errors.New("extra arguments on command-line"), false
+		return false, errors.New("extra arguments on command-line")
 	}
 
-	return nil, false
+	return false, nil
 }

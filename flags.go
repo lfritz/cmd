@@ -228,7 +228,7 @@ func splitSpec(spec string) ([]string, error) {
 	return parts, nil
 }
 
-func (f *Flags) parse(args []string) (err error, help bool, following []string) {
+func (f *Flags) parse(args []string) (help bool, following []string, err error) {
 	for len(args) > 0 {
 		a := args[0]
 		if !isFlag(a) {
@@ -240,21 +240,21 @@ func (f *Flags) parse(args []string) (err error, help bool, following []string) 
 		if value != "" {
 			_, ok := f.flags[a]
 			if ok {
-				return fmt.Errorf("%s does not take a value", a), false, nil
+				return false, nil, fmt.Errorf("%s does not take a value", a)
 			}
 			o, ok := f.options[a]
 			if !ok {
-				return fmt.Errorf("unrecognized flag %s", a), false, nil
+				return false, nil, fmt.Errorf("unrecognized flag %s", a)
 			}
 			err := o.set(a, value)
 			if err != nil {
-				return err, false, nil
+				return false, nil, err
 			}
 			continue
 		}
 
 		if helpFlags[a] {
-			return nil, true, nil
+			return true, nil, nil
 		}
 
 		ptr, ok := f.flags[a]
@@ -266,20 +266,20 @@ func (f *Flags) parse(args []string) (err error, help bool, following []string) 
 		o, ok := f.options[a]
 		if ok {
 			if len(args) == 0 {
-				return fmt.Errorf("missing value for argument %s", a), false, nil
+				return false, nil, fmt.Errorf("missing value for argument %s", a)
 			}
 			err := o.set(a, args[0])
 			args = args[1:]
 			if err != nil {
-				return err, false, nil
+				return false, nil, err
 			}
 			continue
 		}
 
-		return fmt.Errorf("unrecognized flag %s", a), false, nil
+		return false, nil, fmt.Errorf("unrecognized flag %s", a)
 	}
 
-	return nil, false, args
+	return false, args, nil
 }
 
 func isFlag(s string) bool {
