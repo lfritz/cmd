@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -66,33 +65,5 @@ func TestParse(t *testing.T) {
 	}
 	if name != wantName {
 		t.Errorf("parse set name = %v, want %v", name, wantName)
-	}
-}
-
-func TestSplitSpec(t *testing.T) {
-	cases := []struct {
-		spec      string
-		want      []string
-		wantError bool
-	}{
-		{"-v", []string{"-v"}, false},
-		{"-v --verbose -d --debug", []string{"-v", "--verbose", "-d", "--debug"}, false},
-		{"", nil, true},
-		{"---verbose", nil, true},
-		{"hello", nil, true},
-	}
-	for _, c := range cases {
-		got, err := splitSpec(c.spec)
-		if err != nil && !c.wantError {
-			t.Errorf("splitSpec(%v) returned error", c.spec)
-			continue
-		}
-		if err == nil && c.wantError {
-			t.Errorf("splitSpec(%v) didn't return error", c.spec)
-			continue
-		}
-		if !reflect.DeepEqual(got, c.want) {
-			t.Errorf("splitSpec(%v) returned %v, want %v", c.spec, got, c.want)
-		}
 	}
 }

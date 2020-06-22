@@ -8,12 +8,6 @@ import (
 	"time"
 )
 
-var helpFlags = map[string]bool{
-	"-h":     true,
-	"-help":  true,
-	"--help": true,
-}
-
 // Flags is used to define flags with and without arguments. It’s embedded in Cmd and Group; you
 // usually call its methods directly on those types.
 type Flags struct {
@@ -31,10 +25,6 @@ func newFlags() Flags {
 		options: make(map[string]*option),
 		defs:    []*definition{},
 	}
-}
-
-type option struct {
-	set func(name, value string) error
 }
 
 type entry struct {
@@ -210,22 +200,15 @@ func (f *Flags) addOption(spec, name, usage string, set func(name, value string)
 	})
 }
 
-var splitRe = regexp.MustCompile(`^--?[^-]`)
+var helpFlags = map[string]bool{
+	"-h":     true,
+	"-help":  true,
+	"--help": true,
+}
 
-func splitSpec(spec string) ([]string, error) {
-	fail := func() ([]string, error) {
-		return nil, fmt.Errorf("invalid spec: %s", spec)
-	}
-	parts := strings.Split(spec, " ")
-	if len(parts) == 0 {
-		return fail()
-	}
-	for _, p := range parts {
-		if !splitRe.MatchString(p) {
-			return fail()
-		}
-	}
-	return parts, nil
+var versionFlags = map[string]bool{
+	"-v":        true,
+	"--version": true,
 }
 
 func (f *Flags) parse(args []string) (help bool, following []string, err error) {
@@ -280,19 +263,4 @@ func (f *Flags) parse(args []string) (help bool, following []string, err error) 
 	}
 
 	return false, args, nil
-}
-
-func isFlag(s string) bool {
-	if s == "" {
-		return false
-	}
-	return s[0] == '-'
-}
-
-func splitFlag(s string) (string, string) {
-	slice := strings.SplitN(s, "=", 2)
-	if len(slice) == 1 {
-		return slice[0], ""
-	}
-	return slice[0], slice[1]
 }
