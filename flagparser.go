@@ -24,21 +24,13 @@ func newFlagParser(allowPositional bool) *flagParser {
 	}
 }
 
-func (p *flagParser) addFlag(spec string, ptr *bool) {
-	names, err := splitSpec(spec)
-	if err != nil {
-		panic(err.Error())
-	}
+func (p *flagParser) addFlag(names []string, ptr *bool) {
 	for _, name := range names {
 		p.flags[name] = ptr
 	}
 }
 
-func (p *flagParser) addOption(spec string, set func(name, value string) error) {
-	names, err := splitSpec(spec)
-	if err != nil {
-		panic(err.Error())
-	}
+func (p *flagParser) addOption(names []string, set func(name, value string) error) {
 	op := &option{
 		set: set,
 	}
@@ -157,22 +149,6 @@ func (p *flagParser) useSingleDashMode() bool {
 		}
 	}
 	return false
-}
-
-var splitRe = regexp.MustCompile(`^--?[^-]`)
-
-func splitSpec(spec string) ([]string, error) {
-	errorMessage := fmt.Errorf("invalid spec: %s", spec)
-	parts := strings.Split(spec, " ")
-	if len(parts) == 0 {
-		return nil, errorMessage
-	}
-	for _, p := range parts {
-		if !splitRe.MatchString(p) {
-			return nil, errorMessage
-		}
-	}
-	return parts, nil
 }
 
 func isFlag(s string) bool {
