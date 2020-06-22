@@ -44,7 +44,7 @@ func TestFlagsAndOptions(t *testing.T) {
 	p.addOption("--color", setter(&color))
 	p.addOption("--shape", setter(&shape))
 	args := []string{"-v", "--color=red", "--shape", "square", "hello", "world"}
-	remaining, help, version, err := p.parse(args, true, true)
+	remaining, help, version, err := p.parse(args, true)
 	wantRemaining := []string{"hello", "world"}
 	wantVerbose := true
 	wantLong := false
@@ -82,7 +82,7 @@ func TestMixingFlagsAndArgs(t *testing.T) {
 	p.addFlag("-l", &long)
 	p.addFlag("-a", &all)
 	args := []string{"-a", "foo", "bar", "-l"}
-	remaining, help, version, err := p.parse(args, false, true)
+	remaining, help, version, err := p.parse(args, false)
 	wantRemaining := []string{"foo", "bar"}
 	if err != nil {
 		t.Errorf("parse returned error: %v", err)
@@ -110,7 +110,7 @@ func TestMergedFlags(t *testing.T) {
 	p.addFlag("-l", &long)
 	p.addFlag("-a", &all)
 	args := []string{"-la"}
-	remaining, help, version, err := p.parse(args, false, true)
+	remaining, help, version, err := p.parse(args, false)
 	wantRemaining := []string{}
 	if err != nil {
 		t.Errorf("parse returned error: %v", err)

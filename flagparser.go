@@ -49,7 +49,9 @@ func (p *flagParser) addOption(spec string, set func(name, value string) error) 
 
 var singleDashMultiCharRe = regexp.MustCompile(`^-[^-].`)
 
-func (p *flagParser) parse(args []string, singleDashMode, allowVersion bool) (remaining []string, help, version bool, err error) {
+func (p *flagParser) parse(args []string, allowVersion bool) (remaining []string, help, version bool, err error) {
+	singleDashMode := p.useSingleDashMode()
+
 	helpFlags := make(map[string]bool)
 	versionFlags := make(map[string]bool)
 	if singleDashMode {
@@ -141,6 +143,20 @@ func (p *flagParser) parse(args []string, singleDashMode, allowVersion bool) (re
 	}
 
 	return
+}
+
+func (p *flagParser) useSingleDashMode() bool {
+	for name := range p.flags {
+		if singleDashMultiCharRe.MatchString(name) {
+			return true
+		}
+	}
+	for name := range p.options {
+		if singleDashMultiCharRe.MatchString(name) {
+			return true
+		}
+	}
+	return false
 }
 
 var splitRe = regexp.MustCompile(`^--?[^-]`)

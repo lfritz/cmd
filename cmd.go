@@ -18,12 +18,15 @@ import (
 // The Summary and Details fields are printed at the beginning and end, respectively, of the help
 // message. They won’t be printed if left empty.
 type Cmd struct {
-	Flags
-	Summary, Details string
-	name             string
-	f                func()
-	args             []positionalArgument
-	argsState        int
+	flagParser                *flagParser
+	Summary, Details, Version string
+	name                      string
+	f                         func()
+	args                      []positionalArgument
+	argsState                 int
+
+	// used for help message
+	optionDefinitions []*definition
 }
 
 const (
@@ -41,9 +44,10 @@ const (
 // in help and error messages.
 func New(name string, f func()) *Cmd {
 	return &Cmd{
-		Flags: newFlags(),
-		name:  name,
-		f:     f,
+		flagParser:        newFlagParser(true),
+		name:              name,
+		f:                 f,
+		optionDefinitions: []*definition{},
 	}
 }
 
@@ -120,20 +124,29 @@ func (c *Cmd) helpAndExit() {
 	os.Exit(0)
 }
 
+func (c *Cmd) versionAndExit() {
+	fmt.Fprintf(os.Stdout, c.formatVersion())
+	os.Exit(0)
+}
+
 // Help returns a help message.
 func (c *Cmd) Help() string {
 	defs := []*definitionList{
 		{
 			title:       "Options",
-			definitions: c.Flags.defs,
+			definitions: c.optionDefinitions,
 		},
 	}
 	return formatHelp(c.usage(), c.Summary, c.Details, defs)
 }
 
+func (c *Cmd) formatVersion() string {
+	return fmt.Sprintf("%s %s", c.name, c.Version)
+}
+
 func (c *Cmd) usage() string {
 	line := []string{"Usage:", c.name}
-	if s := c.Flags.usage(); s != "" {
+	if s := c.flagsUsage(); s != "" {
 		line = append(line, s)
 	}
 	for _, arg := range c.args {
@@ -151,24 +164,39 @@ func (c *Cmd) usage() string {
 	return strings.Join(line, " ")
 }
 
+func (c *Cmd) flagsUsage() string {
+	switch len(c.optionDefinitions) {
+	case 0:
+		return ""
+	case 1:
+		return "[OPTION]"
+	default:
+		return "[OPTION]..."
+	}
+}
+
 // Run parses the given command-line arguments, sets values for given flags and runs the function
 // provided to New. It’s usually called with os.Args[1:].
 func (c *Cmd) Run(args []string) {
-	help, err := c.parse(args)
+	help, version, err := c.parse(args)
 	if err != nil {
 		c.errorAndExit(err)
 	}
 	if help {
 		c.helpAndExit()
 	}
+	if version {
+		c.versionAndExit()
+	}
 	c.f()
 }
 
-func (c *Cmd) parse(args []string) (help bool, err error) {
+func (c *Cmd) parse(args []string) (help, version bool, err error) {
 	// parse flags
-	help, args, err = c.Flags.parse(args)
-	if err != nil || help {
-		return help, err
+	allowVersion := c.Version != ""
+	args, help, version, err = c.flagParser.parse(args, allowVersion)
+	if err != nil || help || version {
+		return help, version, err
 	}
 
 	if c.argsState >= argsMulti {
@@ -177,9 +205,9 @@ func (c *Cmd) parse(args []string) (help bool, err error) {
 			a := c.args[i]
 			if len(args) == 0 {
 				if !a.optional {
-					return false, fmt.Errorf("missing %s argument", a.name)
+					return false, false, fmt.Errorf("missing %s argument", a.name)
 				}
-				return false, nil
+				return false, false, nil
 			}
 			if a.single != nil {
 				*a.single = args[len(args)-1]
@@ -197,9 +225,9 @@ func (c *Cmd) parse(args []string) (help bool, err error) {
 		for _, a := range c.args {
 			if len(args) == 0 {
 				if !a.optional {
-					return false, fmt.Errorf("missing %s argument", a.name)
+					return false, false, fmt.Errorf("missing %s argument", a.name)
 				}
-				return false, nil
+				return false, false, nil
 			}
 			if a.single != nil {
 				*a.single = args[0]
@@ -215,8 +243,8 @@ func (c *Cmd) parse(args []string) (help bool, err error) {
 	}
 
 	if len(args) > 0 {
-		return false, errors.New("extra arguments on command-line")
+		return false, false, errors.New("extra arguments on command-line")
 	}
 
-	return false, nil
+	return false, false, nil
 }
