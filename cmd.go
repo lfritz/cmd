@@ -22,15 +22,8 @@ type Cmd struct {
 	Summary, Details string
 	name             string
 	f                func()
-	args             []arg
+	args             []positionalArgument
 	argsState        int
-}
-
-type arg struct {
-	name     string
-	optional bool
-	single   *string
-	multi    *[]string
 }
 
 const (
@@ -54,10 +47,6 @@ func New(name string, f func()) *Cmd {
 	}
 }
 
-func ambiguousArgs() {
-	panic("Cmd: ambiguous sequence of positional arguments")
-}
-
 // Arg defines a positional argument.
 func (c *Cmd) Arg(name string, p *string) {
 	switch c.argsState {
@@ -70,7 +59,7 @@ func (c *Cmd) Arg(name string, p *string) {
 	default:
 		ambiguousArgs()
 	}
-	c.args = append(c.args, arg{
+	c.args = append(c.args, positionalArgument{
 		name:   name,
 		single: p,
 	})
@@ -86,7 +75,7 @@ func (c *Cmd) OptionalArg(name string, p *string) {
 	default:
 		ambiguousArgs()
 	}
-	c.args = append(c.args, arg{
+	c.args = append(c.args, positionalArgument{
 		name:     name,
 		optional: true,
 		single:   p,
@@ -112,10 +101,10 @@ func (c *Cmd) addArgs(name string, p *[]string, optional bool) {
 	default:
 		ambiguousArgs()
 	}
-	c.args = append(c.args, arg{
+	c.args = append(c.args, positionalArgument{
 		name:     name,
 		optional: optional,
-		multi:    p,
+		slice:    p,
 	})
 }
 
@@ -154,7 +143,7 @@ func (c *Cmd) usage() string {
 		} else {
 			s = fmt.Sprintf("%s", arg.name)
 		}
-		if arg.multi != nil {
+		if arg.slice != nil {
 			s += "..."
 		}
 		line = append(line, s)
@@ -196,9 +185,9 @@ func (c *Cmd) parse(args []string) (help bool, err error) {
 				*a.single = args[len(args)-1]
 				args = args[:len(args)-1]
 			} else {
-				*a.multi = make([]string, len(args))
+				*a.slice = make([]string, len(args))
 				for i, arg := range args {
-					(*a.multi)[i] = arg
+					(*a.slice)[i] = arg
 				}
 				args = nil
 			}
@@ -216,9 +205,9 @@ func (c *Cmd) parse(args []string) (help bool, err error) {
 				*a.single = args[0]
 				args = args[1:]
 			} else {
-				*a.multi = make([]string, len(args))
+				*a.slice = make([]string, len(args))
 				for i, arg := range args {
-					(*a.multi)[i] = arg
+					(*a.slice)[i] = arg
 				}
 				args = nil
 			}
