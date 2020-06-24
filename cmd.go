@@ -2,7 +2,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -22,14 +21,15 @@ import (
 // message. They won’t be printed if left empty.
 type Cmd struct {
 	flagParser                *flagParser
+	argParser                 *argParser
 	Summary, Details, Version string
 	name                      string
+	argUsage                  []string
 	f                         func()
-	args                      []positionalArgument
-	argsState                 int
+	subCommands               map[string]*Cmd
 
 	// used for help message
-	optionDefinitions []*definition
+	optionDefinitions, commandDefinitions []*definition
 }
 
 const (
@@ -48,10 +48,20 @@ const (
 func New(name string, f func()) *Cmd {
 	return &Cmd{
 		flagParser:        newFlagParser(true),
+		argParser:         newArgParser(),
 		name:              name,
 		f:                 f,
 		optionDefinitions: []*definition{},
+		subCommands:       make(map[string]*Cmd),
 	}
+}
+
+func (c *Cmd) hasSubCommands() bool {
+	return len(c.subCommands) != 0
+}
+
+func (c *Cmd) isGroup() bool {
+	return c.f == nil
 }
 
 // Flag defines a flag without a value.
@@ -215,69 +225,45 @@ func splitSpec(spec string) ([]string, error) {
 
 // Arg defines a positional argument.
 func (c *Cmd) Arg(name string, p *string) {
-	switch c.argsState {
-	case argsInitial, argsRegular:
-		c.argsState = argsRegular
-	case argsMulti:
-		c.argsState = argsMultiRegular
-	case argsOptinal:
-		c.argsState = argsOptinalRegular
-	default:
-		ambiguousArgs()
-	}
-	c.args = append(c.args, positionalArgument{
-		name:   name,
-		single: p,
-	})
+	c.argParser.add(name, p)
+	c.argUsage = append(c.argUsage, name)
 }
 
 // OptionalArg defines an optional positional argument.
 func (c *Cmd) OptionalArg(name string, p *string) {
-	switch c.argsState {
-	case argsInitial, argsOptinal:
-		c.argsState = argsOptinal
-	case argsRegular:
-		c.argsState = argsRegularOptional
-	default:
-		ambiguousArgs()
-	}
-	c.args = append(c.args, positionalArgument{
-		name:     name,
-		optional: true,
-		single:   p,
-	})
+	c.argParser.addOptional(name, p)
+	c.argUsage = append(c.argUsage, fmt.Sprintf("[%s]", name))
 }
 
 // RepeatedArg defines an argument that can be present one or more times.
 func (c *Cmd) RepeatedArg(name string, p *[]string) {
-	c.addArgs(name, p, false)
+	c.argParser.addRepeated(name, p, false)
+	c.argUsage = append(c.argUsage, fmt.Sprintf("%s...", name))
 }
 
 // OptionalRepeatedArg defines an argument that can be present zero or more times.
 func (c *Cmd) OptionalRepeatedArg(name string, p *[]string) {
-	c.addArgs(name, p, true)
+	c.argParser.addRepeated(name, p, true)
+	c.argUsage = append(c.argUsage, fmt.Sprintf("[%s]...", name))
 }
 
-func (c *Cmd) addArgs(name string, p *[]string, optional bool) {
-	switch c.argsState {
-	case argsInitial:
-		c.argsState = argsMulti
-	case argsRegular:
-		c.argsState = argsRegularMulti
-	default:
-		ambiguousArgs()
-	}
-	c.args = append(c.args, positionalArgument{
-		name:     name,
-		optional: optional,
-		slice:    p,
+func (c *Cmd) SubCommand(name, usage string, f func()) *Cmd {
+	command := New(fmt.Sprintf("%s %s", c.name, name), f)
+	command.Summary = usage
+	c.subCommands[name] = command
+	c.commandDefinitions = append(c.commandDefinitions, &definition{
+		terms: []string{name},
+		text:  usage,
 	})
+	return command
 }
 
 func (c *Cmd) errorAndExit(err error) {
 	w := os.Stderr
 	fmt.Fprintf(w, "%s: %s\n", c.name, err)
 	fmt.Fprintf(w, "Try '%s --help' for more information.\n", c.name)
+	// TODO if group:
+	//fmt.Fprintf(w, "Try '%s help' for more information.\n", g.name)
 	os.Exit(2)
 }
 
@@ -298,6 +284,10 @@ func (c *Cmd) Help() string {
 			title:       "Options",
 			definitions: c.optionDefinitions,
 		},
+		{
+			title:       "Commands",
+			definitions: c.commandDefinitions,
+		},
 	}
 	return formatHelp(c.usage(), c.Summary, c.Details, defs)
 }
@@ -311,18 +301,8 @@ func (c *Cmd) usage() string {
 	if s := c.flagsUsage(); s != "" {
 		line = append(line, s)
 	}
-	for _, arg := range c.args {
-		var s string
-		if arg.optional {
-			s = fmt.Sprintf("[%s]", arg.name)
-		} else {
-			s = fmt.Sprintf("%s", arg.name)
-		}
-		if arg.slice != nil {
-			s += "..."
-		}
-		line = append(line, s)
-	}
+	line = append(line, c.argUsage...)
+	// TODO add "COMMAND" or "[COMMAND]" if there are sub-commands
 	return strings.Join(line, " ")
 }
 
@@ -361,51 +341,13 @@ func (c *Cmd) parse(args []string) (help, version bool, err error) {
 		return help, version, err
 	}
 
-	if c.argsState >= argsMulti {
-		// parse positional arguments in reverse order
-		for i := len(c.args) - 1; i >= 0; i-- {
-			a := c.args[i]
-			if len(args) == 0 {
-				if !a.optional {
-					return false, false, fmt.Errorf("missing %s argument", a.name)
-				}
-				return false, false, nil
-			}
-			if a.single != nil {
-				*a.single = args[len(args)-1]
-				args = args[:len(args)-1]
-			} else {
-				*a.slice = make([]string, len(args))
-				for i, arg := range args {
-					(*a.slice)[i] = arg
-				}
-				args = nil
-			}
-		}
-	} else {
-		// parse positional arguments in-order
-		for _, a := range c.args {
-			if len(args) == 0 {
-				if !a.optional {
-					return false, false, fmt.Errorf("missing %s argument", a.name)
-				}
-				return false, false, nil
-			}
-			if a.single != nil {
-				*a.single = args[0]
-				args = args[1:]
-			} else {
-				*a.slice = make([]string, len(args))
-				for i, arg := range args {
-					(*a.slice)[i] = arg
-				}
-				args = nil
-			}
-		}
-	}
+	// TODO check sub-commands
+	// also "help" and "version"
+	// fmt.Sprintf("'%s' is not a %s command", a, c.name)
 
-	if len(args) > 0 {
-		return false, false, errors.New("extra arguments on command-line")
+	err = c.argParser.parse(args)
+	if err != nil {
+		return false, false, err
 	}
 
 	return false, false, nil
